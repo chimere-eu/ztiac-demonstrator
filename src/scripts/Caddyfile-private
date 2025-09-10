@@ -1,0 +1,23 @@
+{
+    local_certs
+}
+
+*.ztiac-demonstrator.internal {
+    tls internal
+}
+
+auth.ztiac-demonstrator.internal {
+    reverse_proxy 10.1.3.13:8080
+}
+
+docs.ztiac-demonstrator.internal {
+    reverse_proxy 10.1.3.12:3000
+}
+
+drive.ztiac-demonstrator.internal {
+    reverse_proxy https://10.1.3.11:8080 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}

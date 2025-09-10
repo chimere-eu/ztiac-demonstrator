@@ -1,0 +1,66 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - jq
+
+write_files:
+  - path: /etc/systemd/system/openbao.service
+    content: |
+      [Unit]
+      Description=OpenBao
+      Requires=network-online.target
+      After=network-online.target
+
+      [Service]
+      ExecStart=/usr/bin/bao server -config=/mnt/openbao/config/config.hcl
+      Restart=on-failure
+      LimitNOFILE=65536
+      MemorySwapMax=0
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Format and mount /dev/sda
+  - mkfs.ext4 -F /dev/sda
+  - mkdir -p /mnt/openbao
+  - echo '/dev/sda /mnt/openbao ext4 defaults,nofail 0 2' >> /etc/fstab
+  - mount -a
+  # Create config and data directories on the new disk
+  - mkdir -p /mnt/openbao/config /mnt/openbao/data
+
+  # Download and install AMD64 .deb
+  - curl -Lo /tmp/openbao.deb https://github.com/openbao/openbao/releases/download/v2.2.2/bao_2.2.2_linux_amd64.deb
+  - dpkg -i /tmp/openbao.deb
+
+  # Create config file on mounted disk
+  - |
+    cat <<EOF > /mnt/openbao/config/config.hcl
+    ui = true
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    storage "file" {
+      path = "/mnt/openbao/data"
+    }
+    disable_mlock = true
+    EOF
+
+  # Start service
+  - systemctl daemon-reload
+  - systemctl enable --now openbao
+
+  # Wait a bit
+  - sleep 5
+  - export BAO_ADDR="http://127.0.0.1:8200"
+
+  # Init & unseal vault
+  - bao operator init -key-shares=1 -key-threshold=1 -format=json > /root/init.json
+  - jq -r ".unseal_keys_b64[0]" /root/init.json | xargs -I {} bao operator unseal {}
+  - jq -r ".root_token" /root/init.json > /root/root_token.txt
+
+final_message: "✅ OpenBao deployed using /dev/sda for config and data"
