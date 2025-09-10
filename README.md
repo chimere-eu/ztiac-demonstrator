@@ -58,6 +58,7 @@ This demonstrator uses modules from the [ZTIAC project](https://github.com/chime
 
 - Architecture diagrams: architecture.excalidraw.svg
 - Service-specific documentation: See module READMEs under modules
+- Rapport de validation des performances, de la résilience et de la sécurité du démonstrateur ZTIAC : [RAPPORT.md](./RAPPORT.md)
 
 ---
 
