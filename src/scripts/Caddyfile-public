@@ -1,0 +1,16 @@
+{
+    local_certs
+}
+
+*.ztiac-demonstrator.internal {
+    tls internal
+}
+
+
+meet.ztiac-demonstrator.internal {
+    reverse_proxy https://10.1.1.14:8443 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}
